@@ -39,8 +39,7 @@ int main() {
   std::ifstream in_map_(map_file_.c_str(), std::ifstream::in);
 
   string line;
-  while (getline(in_map_, line)) 
-  {
+  while (getline(in_map_, line)) {
     std::istringstream iss(line);
     double x;
     double y;
@@ -63,16 +62,14 @@ int main() {
    int lane = 1;
    double ref_vel = 49.5;
 
-    h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
+    h.onMessage([&lane, &ref_vel, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
                &map_waypoints_dx,&map_waypoints_dy]
               (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-               uWS::OpCode opCode) 
-			   {
+               uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
-    if (length && length > 2 && data[0] == '4' && data[1] == '2') 
-	{
+    if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
       auto s = hasData(data);
 
@@ -81,8 +78,7 @@ int main() {
         
         string event = j[0].get<string>();
         
-        if (event == "telemetry") 
-		{
+        if (event == "telemetry") {
           // j[1] is the data JSON object
           
           // Main car's localization Data
@@ -128,36 +124,36 @@ int main() {
 
          // if the queue(prev_size) is almost empty use the car as starting point
          if(prev_size<2)
-		 {
-		  double prev_car_x = car_x - cos(car_yaw);
-			  double prev_car_y = car_y - sin(car_yaw);
+	 	{
+	 	  double prev_car_x = car_x - cos(car_yaw);
+          double prev_car_y = car_y - sin(car_yaw);
 
-			  ptsx.push_back(prev_car_x);
-			  ptsx.push_back(car_x);
+          ptsx.push_back(prev_car_x);
+          ptsx.push_back(car_x);
 
-			  ptsy.push_back(prev_car_y);
-			  ptsy.push_back(car_y);
+          ptsy.push_back(prev_car_y);
+          ptsy.push_back(car_y);
 
-		 }
+	 	}
 		// otherwise use the previeous path end points as reference
-		else
+	 	else
 		{
-		 // ref define the previous path end point as reference
-			 double ref_x = previous_path_x[prev_size-1];
-			 double ref_y = previous_path_y[prev_size-1];
+	 	// ref define the previous path end point as reference
+         double ref_x = previous_path_x[prev_size-1];
+         double ref_y = previous_path_y[prev_size-1];
 
-			 //
-			 double ref_x_prev = previous_path_x[prev_size-2];
-			 double ref_y_prev = previous_path_y[prev_size-2];
-			 ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_y_prev);
+         //
+         double ref_x_prev = previous_path_x[prev_size-2];
+         double ref_y_prev = previous_path_y[prev_size-2];
+         ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_y_prev);
 
-		     ptsx.push_back(ref_x_prev);
-			 ptsx.push_back(ref_x);
+	 	 ptsx.push_back(ref_x_prev);
+         ptsx.push_back(ref_x);
 
-			 ptsy.push_back(ref_y_prev);
-			 ptsy.push_back(ref_y);
-
-		}
+         ptsy.push_back(ref_y_prev);
+         ptsy.push_back(ref_y);
+        }
+          
         // using frenet we distribute points that are 30m spaced infront of the cars current position at 30, 60, 90 meters
         vector<double> next_wp0 = getXY(car_s+30,(2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
         vector<double> next_wp1 = getXY(car_s+60,(2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
@@ -177,8 +173,8 @@ int main() {
          double shift_x =  ptsx[i]- ref_x;
          double shift_y =  ptsy[i]- ref_y;
          // apply the rotation matrix to the car 
-         ptsx[i] = (shift_x * cos(0 - ref_yaw) + shift_y * sin(0 - ref_yaw));
-         ptsy[i] = (shift_x * sin(0 - ref_yaw) + shift_y * sin(0 - ref_yaw));
+         ptsx[i] = (shift_x*cos(0 - ref_yaw) + shift_y*sin(0 - ref_yaw));
+         ptsy[i] = (shift_x*sin(0 - ref_yaw) + shift_y*sin(0 - ref_yaw));
        }
 
        // create a spline
@@ -198,38 +194,38 @@ int main() {
         next_y_vals.push_back(previous_path_y[i]);
        }
 
-	   //calculate how to break up spline points so  that we will not pass the ref_val (speed limit)
-	   double target_x = 30.0;
-	   double target_y = s(target_x);
-	   double target_dist = sqrt((target_x * target_x)+(target_y * target_y));
+      //calculate how to break up spline points so  that we will not pass the ref_val (speed limit)
+      double target_x = 30.0;
+      double target_y = s(target_x);
+      double target_dist = sqrt((target_x * target_x)+(target_y * target_y));
 
-       double x_add_on = 0;
+      double x_add_on = 0;
 
        //fill up the missing points (regarding the last movement step of the car) so that we allwas have num_pts_to_have_in_the_list
        const int PTS_IN_LST = 50;
 
-	   for (int i =0; i < (PTS_IN_LST - previous_path_x.size()); i++)
-	   {
-		   double  N =(target_dist/(0.2*ref_vel/2.24)); // number of elements of the spline
-		   double  point_x = x_add_on +(target_x)/N;
-		   double  point_y = s(point_x);
+      for (int i =0; i < (PTS_IN_LST - previous_path_x.size()); i++)
+      {
+       double  N =(target_dist/(0.2*ref_vel/2.24)); // number of elements of the spline
+       double  point_x = x_add_on +(target_x)/N;
+       double  point_y = s(point_x);
 
-		   x_add_on = point_x;
+       x_add_on = point_x;
 
-		   double x_ref = point_x;
-		   double y_ref = point_y;
+       double x_ref = point_x;
+       double y_ref = point_y;
 
-		   // back transformation from car into world(map) coordinates
-		   point_x = x_ref * cos(ref_yaw) + y_ref * sin(ref_yaw);
-		   point_y = x_ref * sin(ref_yaw) + y_ref * cos(ref_yaw);
-		   
-		   point_x+= ref_x;
-		   point_y+= ref_y;
+       // back transformation from car into world(map) coordinates
+       point_x = x_ref * cos(ref_yaw) + y_ref * sin(ref_yaw);
+       point_y = x_ref * sin(ref_yaw) + y_ref * cos(ref_yaw);
+       
+       point_x+= ref_x;
+       point_y+= ref_y;
 
-		   next_x_vals.push_back(point_x);
-		   next_y_vals.push_back(point_y);
+       next_x_vals.push_back(point_x);
+       next_y_vals.push_back(point_y);
 
-		}
+      }
           //double dist_inc = 0.5;
          // for (int i = 0; i < 50; ++i)
          // {
