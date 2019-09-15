@@ -58,9 +58,11 @@ int main() {
     map_waypoints_dy.push_back(d_y);
   }
 
-
+   // this is indicationg the lanes: 0 = left, 1= middel, 2= right
+   // lets start in lane 1
    int lane = 1;
-   double ref_vel = 49.5;
+   // have a reference velocity to target --> infact its also the limit velocity we want go as max.
+   double ref_vel = 49.5;  //mph
 
     h.onMessage([&lane, &ref_vel, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
                &map_waypoints_dx,&map_waypoints_dy]
@@ -145,7 +147,7 @@ int main() {
          //
          double ref_x_prev = previous_path_x[prev_size-2];
          double ref_y_prev = previous_path_y[prev_size-2];
-         ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_y_prev);
+         ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
 
 	 	 ptsx.push_back(ref_x_prev);
          ptsx.push_back(ref_x);
@@ -172,9 +174,9 @@ int main() {
          //shift the cars reference angle to 0 degree
          double shift_x =  ptsx[i]- ref_x;
          double shift_y =  ptsy[i]- ref_y;
-         // apply the rotation matrix to the car 
-         ptsx[i] = (shift_x*cos(0 - ref_yaw) + shift_y*sin(0 - ref_yaw));
-         ptsy[i] = (shift_x*sin(0 - ref_yaw) + shift_y*sin(0 - ref_yaw));
+         // apply the rotation matrix to the car  
+         ptsx[i] = (shift_x*cos(0 - ref_yaw) - shift_y*sin(0 - ref_yaw));
+         ptsy[i] = (shift_x*sin(0 - ref_yaw) + shift_y*cos(0 - ref_yaw));
        }
 
        // create a spline
@@ -197,33 +199,33 @@ int main() {
       //calculate how to break up spline points so  that we will not pass the ref_val (speed limit)
       double target_x = 30.0;
       double target_y = s(target_x);
-      double target_dist = sqrt((target_x * target_x)+(target_y * target_y));
+      double target_dist = sqrt((target_x) * (target_x)+(target_y) * (target_y));
 
-      double x_add_on = 0;
+      double x_add_on = 0;  //Ok
 
        //fill up the missing points (regarding the last movement step of the car) so that we allwas have num_pts_to_have_in_the_list
        const int PTS_IN_LST = 50;
 
-      for (int i =0; i < (PTS_IN_LST - previous_path_x.size()); i++)
+      for (int i =0; i <= (PTS_IN_LST - previous_path_x.size()); i++)
       {
        double  N =(target_dist/(0.2*ref_vel/2.24)); // number of elements of the spline
-       double  point_x = x_add_on +(target_x)/N;
-       double  point_y = s(point_x);
+       double  x_point = x_add_on +(target_x)/N;
+       double  y_point = s(x_point);
 
-       x_add_on = point_x;
+       x_add_on = x_point;
 
-       double x_ref = point_x;
-       double y_ref = point_y;
+       double x_ref = x_point;
+       double y_ref = y_point;
 
        // back transformation from car into world(map) coordinates
-       point_x = x_ref * cos(ref_yaw) + y_ref * sin(ref_yaw);
-       point_y = x_ref * sin(ref_yaw) + y_ref * cos(ref_yaw);
+       x_point = x_ref * cos(ref_yaw) - y_ref * sin(ref_yaw);
+       y_point = x_ref * sin(ref_yaw) + y_ref * cos(ref_yaw);
        
-       point_x+= ref_x;
-       point_y+= ref_y;
+       x_point+= ref_x;
+       y_point+= ref_y;
 
-       next_x_vals.push_back(point_x);
-       next_y_vals.push_back(point_y);
+       next_x_vals.push_back(x_point);
+       next_y_vals.push_back(y_point);
 
       }
           //double dist_inc = 0.5;
