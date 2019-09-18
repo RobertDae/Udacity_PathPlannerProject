@@ -129,7 +129,23 @@ int main() {
 				{
 					
 					//ref_vel=29.5; //mph
+					//if you are too close to the care in fornt of you
 					too_close=true;
+					//if you are in the middel lane --> change lane to the left lane
+					if (lane == 1)
+					{
+					 lane =0;
+					}
+					//if you are in the right lane change to the middle lane
+					else if (lane == 2)
+					{
+						lane=1;
+					}
+					//if you are in the left lane move back in the middle lane
+					else if (lane==0)
+					{
+						lane =1;
+					}
 				}
 			}
 		  }
