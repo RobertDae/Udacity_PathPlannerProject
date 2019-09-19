@@ -123,7 +123,7 @@ int main() {
 				double check_speed = sqrt(vx*vx+vy*vy);
 				double check_car_s = sensor_fusion[i][5];
 				
-				check_car_s+=((double)prev_size*0.2*check_speed);
+				check_car_s+=((double)prev_size*0.02*check_speed);
 				// check s value greater than mine and gap s
 				if ((check_car_s > car_s) &&((check_car_s-car_s) < 30))
 				{
@@ -261,9 +261,9 @@ int main() {
        //fill up the missing points (regarding the last movement step of the car) so that we allwas have num_pts_to_have_in_the_list
       const int PTS_IN_LST = 50;
 
-      for (int i =0; i <= 50 - previous_path_x.size(); i++)
+      for (int i =1; i <= 50 - previous_path_x.size(); i++)
       {
-       double  N =(target_dist/(0.02*ref_vel/2.24)); // number of elements of the spline
+       double  N =(target_dist/(.02*ref_vel/2.24)); // number of elements of the spline
        double  x_point = x_add_on +(target_x)/N;
        double  y_point = s(x_point);
 
