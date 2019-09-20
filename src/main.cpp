@@ -261,7 +261,7 @@ int main() {
        //fill up the missing points (regarding the last movement step of the car) so that we allwas have num_pts_to_have_in_the_list
       const int PTS_IN_LST = 50;
 
-      for (int i =1; i <= 50 - previous_path_x.size(); i++)
+      for (int i =1; i <= PTS_IN_LST - previous_path_x.size(); i++)
       {
        double  N =(target_dist/(.02*ref_vel/2.24)); // number of elements of the spline
        double  x_point = x_add_on +(target_x)/N;
