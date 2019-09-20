@@ -196,8 +196,8 @@ int main() {
 	 	else
 		{
 	 	// ref define the previous path end point as reference
-         double ref_x = previous_path_x[prev_size-1];
-         double ref_y = previous_path_y[prev_size-1];
+         ref_x = previous_path_x[prev_size-1];
+         ref_y = previous_path_y[prev_size-1];
 
          //
          double ref_x_prev = previous_path_x[prev_size-2];
