@@ -77,12 +77,12 @@ int main() {
 
       if (s != "") {
         auto j = json::parse(s);
-        
+
         string event = j[0].get<string>();
-        
+
         if (event == "telemetry") {
           // j[1] is the data JSON object
-          
+
           // Main car's localization Data
           double car_x = j[1]["x"];
           double car_y = j[1]["y"];
@@ -103,61 +103,96 @@ int main() {
           auto sensor_fusion = j[1]["sensor_fusion"];
 
           int prev_size =  previous_path_x.size();
-		  
+
 		  if (prev_size > 0 )
 		  {
 			  car_s = end_path_s;
 		  }
-		  
+ 
 		  bool too_close = false;
-		  
+                  bool car_left = false;
+                  bool car_right = false;
 		  //find ref_v to use
 		  for(int i=0; i < sensor_fusion.size();i++)
 		  {
 			// car is in my lane
-            float d = sensor_fusion[i][6];
-			if(d<(2+4*lane+2) && d>(2+4*lane-2))
+                        float d = sensor_fusion[i][6];
+			
+                        // Identify the lane of the car in question
+			int car_lane;
+			if (d >= 0 && d < 4) 
 			{
-				double vx= sensor_fusion[i][3];
-				double vy= sensor_fusion[i][4];
-				double check_speed = sqrt(vx*vx+vy*vy);
-				double check_car_s = sensor_fusion[i][5];
-				
-				check_car_s+=((double)prev_size*0.02*check_speed);
-				// check s value greater than mine and gap s
-				if ((check_car_s > car_s) &&((check_car_s-car_s) < 30))
-				{
-					
-					//ref_vel=29.5; //mph
-					//if you are too close to the care in fornt of you
-					too_close=true;
-					//if you are in the middel lane --> change lane to the left lane
-					if (lane == 1)
-					{
-					 lane =0;
-					}
-					/* //if you are in the right lane change to the middle lane
-					else if (lane == 2)
-					{
-						lane=1;
-					}
-					//if you are in the left lane move back in the middle lane
-					else if (lane==0)
-					{
-						lane =1;
-					} */
-				}
+			 car_lane = 0;
+			} else if (d >= 4 && d < 8) 
+			{
+			 car_lane = 1;
+			} else if (d >= 8 && d <= 12) 
+			{
+			 car_lane = 2;
+			} else 
+			{
+			  continue;
 			}
+
+// Check width of lane, in case cars are merging into our lane
+				double vx = sensor_fusion[i][3];
+				double vy = sensor_fusion[i][4];
+				double check_speed = sqrt(vx*vx + vy*vy);
+				double check_car_s = sensor_fusion[i][5];
+
+				// If using previous points can project an s value outwards in time
+				// (What position we will be in in the future)
+				// check s values greater than ours and s gap
+				check_car_s += ((double)prev_size*0.02*check_speed);
+
+				int gap = 30; // m
+
+				// Identify whether the car is ahead, to the left, or to the right
+				if (car_lane == lane) {
+					// Another car is ahead
+					too_close |= (check_car_s > car_s) && ((check_car_s - car_s) < gap);
+				} else if (car_lane - lane == 1) {
+					// Another car is to the right
+					car_right |= ((car_s - gap) < check_car_s) && ((car_s + gap) > check_car_s);
+				} else if (lane - car_lane == 1) {
+					// Another car is to the left
+					car_left |= ((car_s - gap) < check_car_s) && ((car_s + gap) > check_car_s);
+				}
+
+
 		  }
 		  
+			// Modulate the speed to avoid collisions. Change lanes if it is safe to do so (nobody to the side)
+		  double acc = 0.224;
+		  double max_speed = 49.5;
 		  if(too_close)
 		  {
-			  ref_vel-=0.224;
-		  }
-		  else if (ref_vel < 49.5)
-		  {
-			 ref_vel+=0.224; 
-		  }
+				// A car is ahead
+				// Decide to shift lanes or slow down
+				if (!car_right && lane < 2) {
+					// No car to the right AND there is a right lane -> shift right
+					lane++;
+				} else if (!car_left && lane > 0) {
+					// No car to the left AND there is a left lane -> shift left
+					lane--;
+				} else {
+					// Nowhere to shift -> slow down
+					ref_vel -= acc;
+				}
+			} else {
+				if (lane != 1) {
+					// Not in the center lane. Check if it is safe to move back
+					if ((lane == 2 && !car_left) || (lane == 0 && !car_right)) {
+						// Move back to the center lane
+						lane = 1;
+					}
+				}
+				
+				if (ref_vel < max_speed) {
+					// No car ahead AND we are below the speed limit -> speed limit
+					ref_vel += acc;
+				}
+			}
 
           json msgJson;
 
@@ -196,19 +231,19 @@ int main() {
 	 	else
 		{
 	 	// ref define the previous path end point as reference
-         ref_x = previous_path_x[prev_size-1];
-         ref_y = previous_path_y[prev_size-1];
+                ref_x = previous_path_x[prev_size-1];
+                ref_y = previous_path_y[prev_size-1];
 
-         //
-         double ref_x_prev = previous_path_x[prev_size-2];
-         double ref_y_prev = previous_path_y[prev_size-2];
-         ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
+                //
+                double ref_x_prev = previous_path_x[prev_size-2];
+                double ref_y_prev = previous_path_y[prev_size-2];
+                ref_yaw = atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
 
-	 	 ptsx.push_back(ref_x_prev);
-         ptsx.push_back(ref_x);
+	 	ptsx.push_back(ref_x_prev);
+                ptsx.push_back(ref_x);
 
-         ptsy.push_back(ref_y_prev);
-         ptsy.push_back(ref_y);
+                ptsy.push_back(ref_y_prev);
+                ptsy.push_back(ref_y);
         }
           
         // using frenet we distribute points that are 30m spaced infront of the cars current position at 30, 60, 90 meters
@@ -261,7 +296,7 @@ int main() {
        //fill up the missing points (regarding the last movement step of the car) so that we allwas have num_pts_to_have_in_the_list
       const int PTS_IN_LST = 50;
 
-      for (int i =1; i <= PTS_IN_LST - previous_path_x.size(); i++)
+      for (int i =1; i <= 50 - previous_path_x.size(); i++)
       {
        double  N =(target_dist/(.02*ref_vel/2.24)); // number of elements of the spline
        double  x_point = x_add_on +(target_x)/N;
@@ -330,3 +365,4 @@ int main() {
   
   h.run();
 }
+
