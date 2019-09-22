@@ -116,7 +116,7 @@ int main() {
 		  {
 			// car is in my lane
             float d = sensor_fusion[i][6];
-			if(d<(2+4*lane+2) && d<(2+4*lane-2))
+			if(d<(2+4*lane+2) && d>(2+4*lane-2))
 			{
 				double vx= sensor_fusion[i][3];
 				double vy= sensor_fusion[i][4];
@@ -136,7 +136,7 @@ int main() {
 					{
 					 lane =0;
 					}
-					//if you are in the right lane change to the middle lane
+					/* //if you are in the right lane change to the middle lane
 					else if (lane == 2)
 					{
 						lane=1;
@@ -145,7 +145,7 @@ int main() {
 					else if (lane==0)
 					{
 						lane =1;
-					}
+					} */
 				}
 			}
 		  }
