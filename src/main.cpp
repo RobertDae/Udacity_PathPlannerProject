@@ -1,3 +1,6 @@
+#include "car.hpp"
+#include "fsm.hpp"
+#include "path_planner.hpp"
 #include <uWS/uWS.h>
 #include <fstream>
 #include <iostream>
@@ -8,6 +11,11 @@
 #include "helpers.h"
 #include "json.hpp"
 #include "spline.h"
+
+//This is the flag to activate the Finite state machine model
+//if otherwise not defined the simple logical model will take over which is not so elegant.
+//#define UseFinitStateMachine 1
+
 
 // for convenience
 using nlohmann::json;
@@ -58,13 +66,27 @@ int main() {
     map_waypoints_dy.push_back(d_y);
   }
 
+  //////
+  // read configuration files
+  //////
+  PathPlannerConfig path_planner_config = PathPlannerConfig::FromFile(path_planner_config_file, highway_map_file);
+  circular_unsigned_double_t::SetGlobalMaxValue(path_planner_config.max_s_m);
+  Car::SetPathPlannerConfig(&path_planner_config);
+
+  PathPlanner path_planner(path_planner_config);
+  double global_time_s = 0.0;
+
+
+
+
+
    // this is indicationg the lanes: 0 = left, 1= middel, 2= right
    // lets start in lane 1
    int lane = 1;
    // have a reference velocity to target --> infact its also the limit velocity we want go as max.
    double ref_vel = 0.0;  //mph   former 49.5
 
-    h.onMessage([&lane, &ref_vel, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
+    h.onMessage([&path_planner,&global_time_s,&lane, &ref_vel, &map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
                &map_waypoints_dx,&map_waypoints_dy]
               (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                uWS::OpCode opCode) {
@@ -102,6 +124,43 @@ int main() {
           //   of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
 
+//if UseFinitStateMachine is defined the corresponding fsm will be activated.
+#if define UseFinitStateMachine
+          // implement code for FSM
+		  json msgJson;
+
+
+          // some values need to be converted into International System of Units
+          double vel_mps = MphToMps(car_speed);
+          double yaw_rad = DegToRad(car_yaw);
+
+          double vel_x_mps = vel_mps * cos(yaw_rad);
+          double vel_y_mps = vel_mps * sin(yaw_rad);
+
+          Car car{
+              Car::Builder()
+                  .SetId(-1)
+                  .SetState(FSM::State::KeepLane)
+                  .SetTime(global_time_s)
+                  .SetCoordinateS(car_s)
+                  .SetCoordinateD(car_d)
+                  .SetVelocityS(0.0)       // unknown here; 0.0 only for the first time, when car is not moving
+                  .SetVelocityD(0.0)       //
+                  .SetAccelerationS(0.0)   //
+                  .SetAccelerationD(0.0)   //
+            .Build()
+          };
+
+          std::vector< std::vector<double> > next_coords =
+              path_planner.GetNextXYTrajectories(car, previous_path_x, previous_path_y, sensor_fusion);
+
+          msgJson["next_x"] = next_coords[0];
+          msgJson["next_y"] = next_coords[1];
+			  
+		  global_time_s += path_planner.GetPathPlannerConfig().frequency_s;
+//when UseFinitStateMachine is not activated use simple behavior logic		  
+#else
+
           int prev_size =  previous_path_x.size();
 
 		  if (prev_size > 0 )
@@ -110,15 +169,15 @@ int main() {
 		  }
  
 		  bool too_close = false;
-                  bool car_left = false;
-                  bool car_right = false;
+          bool car_left = false;
+          bool car_right = false;
 		  //find ref_v to use
 		  for(int i=0; i < sensor_fusion.size();i++)
 		  {
 			// car is in my lane
-                        float d = sensor_fusion[i][6];
+            float d = sensor_fusion[i][6];
 			
-                        // Identify the lane of the car in question
+            // Identify the lane of the car in question
 			int car_lane;
 			if (d >= 0 && d < 4) 
 			{
@@ -134,7 +193,7 @@ int main() {
 			  continue;
 			}
 
-// Check width of lane, in case cars are merging into our lane
+                // Check width of lane, in case cars are merging into our lane
 				double vx = sensor_fusion[i][3];
 				double vy = sensor_fusion[i][4];
 				double check_speed = sqrt(vx*vx + vy*vy);
@@ -176,7 +235,7 @@ int main() {
 					// No car to the left AND there is a left lane -> shift left
 					lane--;
 				} else {
-					// Nowhere to shift -> slow down
+					// Nowhere to shift -> slow down factor 2 for not hitting sudden breaking cars.
 					ref_vel -= 2*acc;
 				}
 			} else {
@@ -318,21 +377,12 @@ int main() {
        next_y_vals.push_back(y_point);
 
       }
-          //double dist_inc = 0.5;
-         // for (int i = 0; i < 50; ++i)
-         // {
-         //  double next_s = car_s+(i+1)*(dist_inc);
-         //  double next_d = 6.0;
-           
-         //  vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y );
-
-         //  next_x_vals.push_back(xy[0]);
-         //  next_y_vals.push_back(xy[1]);
-         // }
+         
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
-
+//end of UseFinitStateMachine definition check
+#endif
           auto msg = "42[\"control\","+ msgJson.dump()+"]";
 
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
