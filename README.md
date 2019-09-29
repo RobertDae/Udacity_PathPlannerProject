@@ -58,7 +58,7 @@ $> build/path_planning data/path_planner_config.json data/highway_map.csv
 [![LINK TO YOUTUBE](readme_images/video.png)](https://youtu.be/dZDU_c_08rk)
 
 
-####Implementation
+#### Implementation
 Other than the addition of the header file spline.h from this page, the rest of the implementation was completed in the file main.cpp. Udacity provided a number of helper functions in main.cpp. My implementation occurred in the telemetry section of the function h.onMessage(), between lines 233 and 445.
 
 There are numerous ways to implement this project successfully. My implementation involves the use of cubic splines to generate smooth trajectories. This is similar to an implementation provided in Udacity's walk-through video.
@@ -67,7 +67,7 @@ The implementation is divided into two categories:
 
 Prediction and decision based on environmental cues
 Generation of the vehicle's trajectory
-####1. Prediction and Decision
+#### 1. Prediction and Decision
 This step analyzes the localization and sensor fusion data for all cars on the same side of the track, including the ego vehicle.
 
 ```
@@ -159,7 +159,7 @@ The car will move back to the center lane when it becomes clear. This is because
 
 If the area in front of the car is clear, no matter the lane, the car will speed up.
 
-####2. Trajectory Generation
+#### 2. Trajectory Generation
 Lines 340 to 445 of main.cpp compute the trajectory of the vehicle from the decisions made above, the vehicle's position, and historical path points.
 
 ```
