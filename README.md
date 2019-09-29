@@ -16,15 +16,7 @@
   <link rel="dns-prefetch" href="https://github-cloud.s3.amazonaws.com">
   <link rel="dns-prefetch" href="https://user-images.githubusercontent.com/">
 
-
-
-  <link crossorigin="anonymous" media="all" integrity="sha512-lEwNhIgWxFtdGboTlCciWWGiX2vG3LOojEE671oRJEhnPj6jpmgQTJtpq3O2KBzCcln6RzwfvHlyFaI/oR+RNQ==" rel="stylesheet" href="https://github.githubassets.com/assets/frameworks-849637ecbd4bd65815cc113d80fee2d4.css" />
-  
-    <link crossorigin="anonymous" media="all" integrity="sha512-ZIVQ5xH4xRPgEBzl7RRQebsfNJcuNt4tdhboEnRhGSGhyXVESRTxdb9W439oH0MeqADdj5gxaLCLmHYTlOXqtw==" rel="stylesheet" href="https://github.githubassets.com/assets/github-765e7332c1c58bca34b5cadb2351d4d4.css" />
-    
-    
-    
-    
+   
 
   <meta name="viewport" content="width=device-width">
   
