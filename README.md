@@ -136,7 +136,7 @@ if (too_close) {
         lane--;
     } else {
         // Nowhere to shift -> slow down
-        ref_vel -= acc;
+        ref_vel -= 2*acc;
     }
 } else {
     if (lane != 1) {
